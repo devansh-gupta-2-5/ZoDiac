@@ -154,6 +154,20 @@ class RotateAttacker(WMAttacker):
             img.save(out_path)
 
 
+class LateralInversionAttacker(WMAttacker):
+    def __init__(self):
+        pass
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path)
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            img.save(out_path)
+
+
 class ScaleAttacker(WMAttacker):
     def __init__(self, scale=0.5):
         self.scale = scale
