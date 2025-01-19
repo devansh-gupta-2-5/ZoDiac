@@ -27,15 +27,29 @@ class GTWatermark():
         return ((x - x0)**2 + (y-y0)**2) <= r**2
 
     def _get_watermarking_pattern(self, gt_init):
-        coeffs = pywt.wavedec2(gt_init.squeeze().cpu().numpy(), wavelet='haar', level=2)
+        # Extract the spatial dimensions for wavelet transform
+        spatial_dims = (-2, -1)  # Assuming last two dimensions are spatial (height, width)
+        
+        # Perform wavelet decomposition along spatial dimensions
+        coeffs = pywt.wavedec2(gt_init.squeeze().cpu().numpy(), wavelet='haar', level=2, axes=spatial_dims)
         coeffs_array, coeffs_slices = pywt.coeffs_to_array(coeffs)
+        
+        # Generate a circular mask
         mask = self._circle_mask(coeffs_array.shape[0], self.w_radius)
-
+        
         # Modify DWT coefficients in the masked region
         coeffs_array[mask] = coeffs_array[mask].mean()  # Example modification
         modified_coeffs = pywt.array_to_coeffs(coeffs_array, coeffs_slices, output_format='wavedec2')
+    
+        # Reconstruct the modified signal
+        reconstructed = pywt.waverec2(modified_coeffs, wavelet='haar', axes=spatial_dims)
+        return torch.tensor(reconstructed).to(self.device), mask
 
-        return torch.tensor(pywt.waverec2(modified_coeffs, wavelet='haar')).to(self.device), mask
+        
+        # Reconstruct the modified signal
+        reconstructed = pywt.waverec2(modified_coeffs, wavelet='haar', axes=spatial_dims)
+        return torch.tensor(reconstructed).to(self.device), mask
+
 
     def _get_watermarking_mask(self, gt_patch):
         coeffs = pywt.wavedec2(gt_patch.squeeze().cpu().numpy(), wavelet='haar', level=2)
