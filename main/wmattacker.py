@@ -60,6 +60,193 @@ class GaussianBlurAttacker(WMAttacker):
             img = cv2.GaussianBlur(img, (self.kernel_size, self.kernel_size), self.sigma)
             cv2.imwrite(out_path, img)
 
+class MotionBlurAttacker(WMAttacker):
+    def __init__(self, kernel_size=15, angle=45):
+        self.kernel_size = kernel_size
+        self.angle = angle
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            
+            # Create the motion blur kernel
+            kernel = np.zeros((self.kernel_size, self.kernel_size))
+            center = (self.kernel_size - 1) // 2
+            angle_rad = np.deg2rad(self.angle)
+            x = int(round(center + np.cos(angle_rad) * center))
+            y = int(round(center + np.sin(angle_rad) * center))
+            kernel[center, center] = 1
+            kernel[y, x] = 1
+            kernel = cv2.normalize(kernel, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+            
+            # Apply the motion blur
+            blurred = cv2.filter2D(img, -1, kernel)
+            
+            cv2.imwrite(out_path, blurred)
+
+class OutOfFocusBlurAttacker(WMAttacker):
+    def __init__(self, kernel_size=15):
+        self.kernel_size = kernel_size
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            
+            # Create the out-of-focus blur kernel
+            kernel = np.zeros((self.kernel_size, self.kernel_size))
+            center = (self.kernel_size - 1) // 2
+            y, x = np.ogrid[-center:center+1, -center:center+1]
+            mask = x*x + y*y <= center*center
+            kernel[mask] = 1
+            kernel = kernel / np.sum(kernel)
+            
+            # Apply the out-of-focus blur
+            blurred = cv2.filter2D(img, -1, kernel)
+            
+            cv2.imwrite(out_path, blurred)
+
+class RadialBlurAttacker(WMAttacker):
+    def __init__(self, strength=10):
+        self.strength = strength
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            h, w = img.shape[:2]
+            center = (w // 2, h // 2)
+            
+            # Create the radial blur effect
+            for i in range(self.strength):
+                weight = 1.0 - (i / self.strength)
+                size = i * 2 + 1
+                blurred = cv2.GaussianBlur(img, (size, size), 0)
+                mask = np.zeros((h, w), dtype=np.float32)
+                cv2.circle(mask, center, i, (weight), -1)
+                img = img * (1 - mask[:,:,np.newaxis]) + blurred * mask[:,:,np.newaxis]
+            
+            cv2.imwrite(out_path, img.astype(np.uint8))
+
+class ZoomBlurAttacker(WMAttacker):
+    def __init__(self, strength=20):
+        self.strength = strength
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            h, w = img.shape[:2]
+            center = (w // 2, h // 2)
+            
+            # Create the zoom blur effect
+            result = np.zeros_like(img, dtype=np.float32)
+            for i in range(self.strength):
+                scale = 1 + (i / self.strength) * 0.2
+                scaled = cv2.resize(img, None, fx=scale, fy=scale)
+                sh, sw = scaled.shape[:2]
+                y_start, x_start = max(0, (sh - h) // 2), max(0, (sw - w) // 2)
+                y_end, x_end = y_start + h, x_start + w
+                crop = scaled[y_start:y_end, x_start:x_end]
+                result += crop
+            
+            result /= self.strength
+            cv2.imwrite(out_path, result.astype(np.uint8))
+
+class AtmosphericBlurAttacker(WMAttacker):
+    def __init__(self, strength=0.5):
+        self.strength = strength
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            
+            # Create atmospheric blur effect
+            kernel_size = int(min(img.shape[:2]) * self.strength)
+            if kernel_size % 2 == 0:
+                kernel_size += 1
+            
+            blurred = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+            result = cv2.addWeighted(img, 1 - self.strength, blurred, self.strength, 0)
+            
+            cv2.imwrite(out_path, result)
+
+class PSFBlurAttacker(WMAttacker):
+    def __init__(self, kernel_size=15, angle=45):
+        self.kernel_size = kernel_size
+        self.angle = angle
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            
+            # Create PSF kernel
+            kernel = np.zeros((self.kernel_size, self.kernel_size))
+            center = self.kernel_size // 2
+            angle_rad = np.deg2rad(self.angle)
+            dx = int(center * np.cos(angle_rad))
+            dy = int(center * np.sin(angle_rad))
+            kernel[center, center] = 1
+            kernel[center + dy, center + dx] = 1
+            kernel = kernel / np.sum(kernel)
+            
+            # Apply PSF blur
+            blurred = np.zeros_like(img, dtype=np.float32)
+            for i in range(3):  # Apply to each color channel
+                blurred[:,:,i] = signal.convolve2d(img[:,:,i], kernel, mode='same', boundary='wrap')
+            
+            cv2.imwrite(out_path, blurred.astype(np.uint8))
+
+class BilateralFilterAttacker(WMAttacker):
+    def __init__(self, d=9, sigmaColor=75, sigmaSpace=75):
+        self.d = d
+        self.sigmaColor = sigmaColor
+        self.sigmaSpace = sigmaSpace
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            
+            # Apply bilateral filter
+            filtered = cv2.bilateralFilter(img, self.d, self.sigmaColor, self.sigmaSpace)
+            
+            cv2.imwrite(out_path, filtered)
+
+class IterativeBlurAttacker(WMAttacker):
+    def __init__(self, iterations=3):
+        self.iterations = iterations
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            
+            # Apply iterative blurring
+            for _ in range(self.iterations):
+                img = cv2.GaussianBlur(img, (5, 5), 0)
+                img = cv2.medianBlur(img, 5)
+            
+            cv2.imwrite(out_path, img)
 
 class GaussianNoiseAttacker(WMAttacker):
     def __init__(self, std=0.05):
