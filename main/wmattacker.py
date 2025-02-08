@@ -249,6 +249,61 @@ class IterativeBlurAttacker(WMAttacker):
             
             cv2.imwrite(out_path, img)
 
+class AnisotropicDiffusionAttacker(WMAttacker):
+    def __init__(self, num_iter=15, delta_t=0.14, kappa=50):
+        self.num_iter = num_iter
+        self.delta_t = delta_t
+        self.kappa = kappa
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path, 0).astype(np.float32)
+            
+            for _ in range(self.num_iter):
+                gradient_N = np.roll(img, -1, axis=0) - img
+                gradient_S = np.roll(img, 1, axis=0) - img
+                gradient_E = np.roll(img, -1, axis=1) - img
+                gradient_W = np.roll(img, 1, axis=1) - img
+                
+                cN = np.exp(-(gradient_N/self.kappa)**2)
+                cS = np.exp(-(gradient_S/self.kappa)**2)
+                cE = np.exp(-(gradient_E/self.kappa)**2)
+                cW = np.exp(-(gradient_W/self.kappa)**2)
+                
+                img += self.delta_t * (cN*gradient_N + cS*gradient_S + cE*gradient_E + cW*gradient_W)
+            
+            cv2.imwrite(out_path, img.astype(np.uint8))
+
+class DirectionalGaussianBlurAttacker(WMAttacker):
+    def __init__(self, kernel_size=15, sigma=5, angle=45):
+        self.kernel_size = kernel_size
+        self.sigma = sigma
+        self.angle = angle
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            
+            kernel = np.zeros((self.kernel_size, self.kernel_size))
+            center = self.kernel_size // 2
+            angle_rad = np.deg2rad(self.angle)
+            
+            for x in range(self.kernel_size):
+                for y in range(self.kernel_size):
+                    rotated_x = (x - center) * np.cos(angle_rad) - (y - center) * np.sin(angle_rad)
+                    kernel[y, x] = np.exp(-rotated_x**2 / (2 * self.sigma**2))
+            
+            kernel /= np.sum(kernel)
+            blurred = cv2.filter2D(img, -1, kernel)
+            
+            cv2.imwrite(out_path, blurred)
+
 class GaussianNoiseAttacker(WMAttacker):
     def __init__(self, std=0.05):
         self.std = std
