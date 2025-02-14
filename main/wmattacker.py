@@ -365,6 +365,19 @@ class BrightnessAttacker(WMAttacker):
             img = enhancer.enhance(self.brightness)
             img.save(out_path)
 
+class BlackAndWhiteAttacker(WMAttacker):
+    def __init__(self):
+        pass
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path)
+            img = img.convert('L')
+            img.save(out_path)
+
 
 class ContrastAttacker(WMAttacker):
     def __init__(self, contrast=0.2):
@@ -378,6 +391,20 @@ class ContrastAttacker(WMAttacker):
             img = Image.open(img_path)
             enhancer = ImageEnhance.Contrast(img)
             img = enhancer.enhance(self.contrast)
+            img.save(out_path)
+
+class VibrancyAttacker(WMAttacker):
+    def __init__(self, vibrancy=0.2):
+        self.vibrancy = vibrancy
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path)
+            enhancer = ImageEnhance.Color(img)
+            img = enhancer.enhance(self.vibrancy)
             img.save(out_path)
 
 
@@ -510,3 +537,83 @@ class DiffWMAttacker(WMAttacker):
                 batched_attack(latents_buf, prompts_buf, outs_buf)
             if return_latents:
                 return ret_latents
+
+class SharpeningAttacker(WMAttacker):
+    def __init__(self, factor=2.0):
+        self.factor = factor
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path)
+            enhancer = ImageEnhance.Sharpness(img)
+            img = enhancer.enhance(self.factor)
+            img.save(out_path)
+
+class SaltAndPepperNoiseAttacker(WMAttacker):
+    def __init__(self, amount=0.05):
+        self.amount = amount
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path)
+            img_array = np.array(img)
+            
+            # Salt noise
+            num_salt = np.ceil(self.amount * img_array.size * 0.5)
+            coords = [np.random.randint(0, i - 1, int(num_salt)) for i in img_array.shape]
+            img_array[coords[0], coords[1], :] = 255
+
+            # Pepper noise
+            num_pepper = np.ceil(self.amount * img_array.size * 0.5)
+            coords = [np.random.randint(0, i - 1, int(num_pepper)) for i in img_array.shape]
+            img_array[coords[0], coords[1], :] = 0
+            
+            img = Image.fromarray(img_array.astype(np.uint8))
+            img.save(out_path)
+
+class HueChangeAttacker(WMAttacker):
+    def __init__(self, factor=0.5):
+        self.factor = factor
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path).convert('HSV')
+            h, s, v = img.split()
+            h = h.point(lambda i: (i + int(self.factor * 255)) % 255)
+            img = Image.merge('HSV', (h, s, v)).convert('RGB')
+            img.save(out_path)
+
+class ElasticDeformationAttacker(WMAttacker):
+    def __init__(self, alpha=1000, sigma=50):
+        self.alpha = alpha
+        self.sigma = sigma
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path)
+            img_array = np.array(img)
+            
+            shape = img_array.shape
+            dx = gaussian_filter((np.random.rand(*shape) * 2 - 1), self.sigma) * self.alpha
+            dy = gaussian_filter((np.random.rand(*shape) * 2 - 1), self.sigma) * self.alpha
+            
+            x, y, z = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]), np.arange(shape[2]))
+            indices = np.reshape(y+dy, (-1, 1)), np.reshape(x+dx, (-1, 1)), np.reshape(z, (-1, 1))
+            
+            distorted_image = map_coordinates(img_array, indices, order=1, mode='reflect')
+            distorted_image = distorted_image.reshape(img_array.shape)
+            
+            img = Image.fromarray(distorted_image.astype(np.uint8))
+            img.save(out_path)
