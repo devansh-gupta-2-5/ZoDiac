@@ -6,6 +6,7 @@ import os
 from scipy.ndimage import map_coordinates, gaussian_filter
 from scipy import signal
 from skimage.util import random_noise
+from skimage import exposure
 import matplotlib.pyplot as plt
 from torchvision import transforms
 from tqdm.auto import tqdm
@@ -617,4 +618,151 @@ class ElasticDeformationAttacker(WMAttacker):
             distorted_image = distorted_image.reshape(img_array.shape)
             
             img = Image.fromarray(distorted_image.astype(np.uint8))
+            img.save(out_path)
+
+class RGBtoHSVAttacker(WMAttacker):
+    def __init__(self, h_shift=0.1, s_scale=1.2, v_scale=1.1):
+        self.h_shift = h_shift
+        self.s_scale = s_scale
+        self.v_scale = v_scale
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.float32)
+            hsv[:,:,0] = (hsv[:,:,0] + self.h_shift * 180) % 180
+            hsv[:,:,1] = np.clip(hsv[:,:,1] * self.s_scale, 0, 255)
+            hsv[:,:,2] = np.clip(hsv[:,:,2] * self.v_scale, 0, 255)
+            img = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+            cv2.imwrite(out_path, img)
+
+class ColorBalanceAttacker(WMAttacker):
+    def __init__(self, r_scale=1.2, g_scale=1.0, b_scale=0.8):
+        self.r_scale = r_scale
+        self.g_scale = g_scale
+        self.b_scale = b_scale
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            img = img.astype(np.float32)
+            img[:,:,0] = np.clip(img[:,:,0] * self.b_scale, 0, 255)
+            img[:,:,1] = np.clip(img[:,:,1] * self.g_scale, 0, 255)
+            img[:,:,2] = np.clip(img[:,:,2] * self.r_scale, 0, 255)
+            cv2.imwrite(out_path, img.astype(np.uint8))
+
+class GammaAttacker(WMAttacker):
+    def __init__(self, gamma=1.5):
+        self.gamma = gamma
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            img = np.power(img / 255.0, self.gamma)
+            img = (img * 255).astype(np.uint8)
+            cv2.imwrite(out_path, img)
+
+class HistogramEqualizationAttacker(WMAttacker):
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+            img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
+            img = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+            cv2.imwrite(out_path, img)
+
+class LogTransformAttacker(WMAttacker):
+    def __init__(self, c=1):
+        self.c = c
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            img = np.float32(img)
+            img = self.c * np.log1p(img)
+            img = np.uint8(255 * img / np.max(img))
+            cv2.imwrite(out_path, img)
+
+class ColorJitterAttacker(WMAttacker):
+    def __init__(self, brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1):
+        self.brightness = brightness
+        self.contrast = contrast
+        self.saturation = saturation
+        self.hue = hue
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path)
+            img = ImageEnhance.Brightness(img).enhance(1 + np.random.uniform(-self.brightness, self.brightness))
+            img = ImageEnhance.Contrast(img).enhance(1 + np.random.uniform(-self.contrast, self.contrast))
+            img = ImageEnhance.Color(img).enhance(1 + np.random.uniform(-self.saturation, self.saturation))
+            img = img.convert('HSV')
+            h, s, v = img.split()
+            h = h.point(lambda i: (i + int(np.random.uniform(-self.hue, self.hue) * 255)) % 255)
+            img = Image.merge('HSV', (h, s, v)).convert('RGB')
+            img.save(out_path)
+
+class ColorQuantizationAttacker(WMAttacker):
+    def __init__(self, n_colors=32):
+        self.n_colors = n_colors
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            Z = img.reshape((-1,3))
+            Z = np.float32(Z)
+            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+            _, label, center = cv2.kmeans(Z, self.n_colors, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+            center = np.uint8(center)
+            res = center[label.flatten()]
+            res2 = res.reshape((img.shape))
+            cv2.imwrite(out_path, res2)
+
+class SepiaAttacker(WMAttacker):
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = cv2.imread(img_path)
+            img_sepia = np.array(img, dtype=np.float64) # converting to float to prevent loss
+            img_sepia = cv2.transform(img_sepia, np.matrix([[0.272, 0.534, 0.131],
+                                                            [0.349, 0.686, 0.168],
+                                                            [0.393, 0.769, 0.189]]))
+            img_sepia[np.where(img_sepia > 255)] = 255 # normalizing values greater than 255 to 255
+            img_sepia = np.array(img_sepia, dtype=np.uint8)
+            cv2.imwrite(out_path, img_sepia)
+
+class PosterizationAttacker(WMAttacker):
+    def __init__(self, levels=4):
+        self.levels = levels
+
+    def attack(self, image_paths, out_paths, multi=False):
+        for (img_path, out_path) in tqdm(zip(image_paths, out_paths)):
+            if os.path.exists(out_path) and not multi:
+                continue
+            
+            img = Image.open(img_path)
+            img = ImageOps.posterize(img, self.levels)
             img.save(out_path)
