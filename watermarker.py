@@ -47,7 +47,7 @@ pipe.set_progress_bar_config(disable=True)
 input_folder_path = args.input_folder 
 wm_path = cfgs['save_img']
 # A dictionary to maintain running average of all the metrics
-metrics = {"ssim": [], "psnr": [], "normal": [], "adv": [] ,}
+metrics = {"ssim": [], "psnr": [], "normal": [], "adv": [] ,} #CHANGE
 tatta = 0
 ############################################################################################################
 for imagename in os.listdir(input_folder_path):
@@ -154,7 +154,7 @@ for imagename in os.listdir(input_folder_path):
         'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
         'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
         'bm3d': BM3DAttacker(),
-    }
+    }#CHANGE
 
 
     post_img = os.path.join(wm_path, f"{imagename.split('.')[0]}_{cfgs['save_iters'][-1]}_SSIM{ssim_threshold}.png")
@@ -197,7 +197,7 @@ for imagename in os.listdir(input_folder_path):
             'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
             'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
             'bm3d': BM3DAttacker(),
-            }
+            }#CHANGE
             multi_name = 'all_norot'
             
         
@@ -213,7 +213,7 @@ for imagename in os.listdir(input_folder_path):
 
     attackers = ['diff_attacker_60', 'cheng2020-anchor_3', 'bmshj2018-factorized_3', 'jpeg_attacker_50', 
                 'brightness_0.5', 'contrast_0.5', 'Gaussian_noise', 'Gaussian_blur', 'rotate_90', 'bm3d', 
-                'all', 'all_norot']
+                'all', 'all_norot']#CHANGE
 
     tester_prompt = '' # assume at the detection time, the original prompt is unknown
     text_embeddings = pipe.get_text_embedding(tester_prompt)
@@ -227,7 +227,7 @@ for imagename in os.listdir(input_folder_path):
             continue
             
         det_prob = 1 - watermark_prob(os.path.join(wm_path, attacker_name, os.path.basename(post_img)), pipe, wm_pipe, text_embeddings)
-
+        #CHANGE , APPEND IN METRICS HERE
     device = torch.device("cuda")
     if args.attack == True:
         def circle_mask(size=64, r=10, x_offset=0, y_offset=0):
@@ -309,6 +309,7 @@ for imagename in os.listdir(input_folder_path):
         metrics["adv"].append(det_prob)
     tatta += 1  
     logging.info(f'Image {imagename} done')
+    logging.info(f'Image number {tatta+1}')
 #save this metrics to a csv file by coverting it to a dataframe
 logging.info(f'===== Saving Metrics =====')
 import pandas as pd
