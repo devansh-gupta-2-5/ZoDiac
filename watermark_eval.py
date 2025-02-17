@@ -47,7 +47,12 @@ pipe.set_progress_bar_config(disable=True)
 input_folder_path = args.input_folder 
 wm_path = cfgs['save_img']
 # A dictionary to maintain running average of all the metrics
-metrics = {"ssim": [], "psnr": [], "normal": [], "adv": [] ,} #CHANGE
+metrics = {"ssim": [], "psnr": [], "normal": [], "adv": [] ,'diff_attacker_60':[],'cheng2020-anchor_3':[], 'bmshj2018-factorized_3':[], 'jpeg_attacker_50':[],'jpeg_attacker_90':[],'jpeg_attacker_99':[], 
+             'brightness_0.5':[],'brightness_1.5':[] ,'contrast_0.5':[],'contrast_1.5':[],'vibrancy_1.25':[],'black_white':[], 'Gaussian_noise':[], 'Gaussian_blur':[],'AnisotropicDiffusion_blur':[],
+             'DirectionalGaussian_blur':[],'sharpening':[],'salt_pepper_noise':[],'hue_change':[],'elastic_deformation':[],'RGBtoHSV':[],'color_balance':[],'gamma':[],'HistogramEqualization':[],
+             'log_transform':[],'color_jitter':[],'color_quantization':[],'sepia':[],'posterization':[],'rotate_90':[], 'bm3d':[],'all':[], 'all_norot':[]} #CHANGE
+
+
 tatta = 0
 ############################################################################################################
 for imagename in os.listdir(input_folder_path):
@@ -144,16 +149,45 @@ for imagename in os.listdir(input_folder_path):
     att_pipe.to(device)
 
     attackers = {
-        'diff_attacker_60': DiffWMAttacker(att_pipe, batch_size=5, noise_step=60, captions={}),
-        'cheng2020-anchor_3': VAEWMAttacker('cheng2020-anchor', quality=3, metric='mse', device=device),
-        'bmshj2018-factorized_3': VAEWMAttacker('bmshj2018-factorized', quality=3, metric='mse', device=device),
-        'jpeg_attacker_50': JPEGAttacker(quality=50),
-        'rotate_90': RotateAttacker(degree=90),
-        'brightness_0.5': BrightnessAttacker(brightness=0.5),
-        'contrast_0.5': ContrastAttacker(contrast=0.5),
-        'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
-        'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
-        'bm3d': BM3DAttacker(),
+    'diff_attacker_60': DiffWMAttacker(att_pipe, batch_size=5, noise_step=60, captions={}),
+    'cheng2020-anchor_3': VAEWMAttacker('cheng2020-anchor', quality=3, metric='mse', device=device),
+    'bmshj2018-factorized_3': VAEWMAttacker('bmshj2018-factorized', quality=3, metric='mse', device=device),
+    'jpeg_attacker_50': JPEGAttacker(quality=50),
+    'jpeg_attacker_90': JPEGAttacker(quality=10),
+    'jpeg_attacker_99': JPEGAttacker(quality=1),
+    'rotate_90': RotateAttacker(degree=90),
+    'brightness_0.5': BrightnessAttacker(brightness=0.5),
+    'brightness_1.5': BrightnessAttacker(brightness=1.5),
+    'contrast_0.5': ContrastAttacker(contrast=0.5),
+    'contrast_1.5': ContrastAttacker(contrast=1.5),
+    'vibrancy_1.25': VibrancyAttacker(vibrancy = 1.25),
+    'black_white': BlackAndWhiteAttacker(),
+    'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
+    'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
+    'Motion_blur': MotionBlurAttacker(kernel_size=15, angle=45),
+    'OutofFocus_blur':OutOfFocusBlurAttacker(kernel_size = 15),
+    'Radial_blur': RadialBlurAttacker(strength = 10),
+    'Zoom_blur':ZoomBlurAttacker(strength=20),
+    'Atmospheric_blur': AtmosphericBlurAttacker(strength=0.5),
+    'PSF_blur': PSFBlurAttacker(kernel_size=15, angle=45),
+    'Bilateral_blur': BilateralFilterAttacker(d=9, sigmaColor=75, sigmaSpace=75),
+    'Iterative_blur': IterativeBlurAttacker(iterations =3),
+    'AnisotropicDiffusion_blur':AnisotropicDiffusionAttacker(num_iter=15, delta_t=0.14, kappa=50),
+    'DirectionalGaussian_blur': DirectionalGaussianBlurAttacker(kernel_size=15, sigma=5, angle=45),
+    'sharpening': SharpeningAttacker(factor = 2.0),
+    'salt_pepper_noise':SaltAndPepperNoiseAttacker(amount = 0.1),
+    'hue_change': HueChangeAttacker(factor = 0.1),
+    'elastic_deformation': ElasticDeformationAttacker(alpha=1000, sigma=50),
+    'RGBtoHSV':RGBtoHSVAttacker(h_shift=0.1, s_scale=1.2, v_scale=1.1),
+    'color_balance': ColorBalanceAttacker( r_scale=1.2, g_scale=1.0, b_scale=0.8),
+    'gamma':GammaAttacker(gamma = 1.5),
+    'HistogramEqualization':HistogramEqualizationAttacker(),
+    'log_transform': LogTransformAttacker(c=1),
+    'color_jitter':ColorJitterAttacker(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+    'color_quantization':ColorQuantizationAttacker(n_colors = 32),
+    'sepia':SepiaAttacker(),
+    'posterization': PosterizationAttacker(levels =4),
+    'bm3d': BM3DAttacker(),
     }#CHANGE
 
 
@@ -174,30 +208,89 @@ for imagename in os.listdir(input_folder_path):
     for case in case_list:
         if case == 'w/ rot':
             attackers = {
-            'diff_attacker_60': DiffWMAttacker(att_pipe, batch_size=5, noise_step=60, captions={}),
-            'cheng2020-anchor_3': VAEWMAttacker('cheng2020-anchor', quality=3, metric='mse', device=device),
-            'bmshj2018-factorized_3': VAEWMAttacker('bmshj2018-factorized', quality=3, metric='mse', device=device),
-            'jpeg_attacker_50': JPEGAttacker(quality=50),
-            'rotate_90': RotateAttacker(degree=90),
-            'brightness_0.5': BrightnessAttacker(brightness=0.5),
-            'contrast_0.5': ContrastAttacker(contrast=0.5),
-            'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
-            'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
-            'bm3d': BM3DAttacker(),
-            }
+                'diff_attacker_60': DiffWMAttacker(att_pipe, batch_size=5, noise_step=60, captions={}),
+                'cheng2020-anchor_3': VAEWMAttacker('cheng2020-anchor', quality=3, metric='mse', device=device),
+                'bmshj2018-factorized_3': VAEWMAttacker('bmshj2018-factorized', quality=3, metric='mse', device=device),
+                'jpeg_attacker_50': JPEGAttacker(quality=50),
+                'jpeg_attacker_90': JPEGAttacker(quality=10),
+                'jpeg_attacker_99': JPEGAttacker(quality=1),
+                'rotate_90': RotateAttacker(degree=90),
+                'brightness_0.5': BrightnessAttacker(brightness=0.5),
+                'brightness_1.5': BrightnessAttacker(brightness=1.5),
+                'contrast_0.5': ContrastAttacker(contrast=0.5),
+                'contrast_1.5': ContrastAttacker(contrast=1.5),
+                'vibrancy_1.25': VibrancyAttacker(vibrancy = 1.25),
+                'black_white': BlackAndWhiteAttacker(),
+                'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
+                'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
+                'Motion_blur': MotionBlurAttacker(kernel_size=15, angle=45),
+                'OutofFocus_blur':OutOfFocusBlurAttacker(kernel_size = 15),
+                'Radial_blur': RadialBlurAttacker(strength = 10),
+                'Zoom_blur':ZoomBlurAttacker(strength=20),
+                'Atmospheric_blur': AtmosphericBlurAttacker(strength=0.5),
+                'PSF_blur': PSFBlurAttacker(kernel_size=15, angle=45),
+                'Bilateral_blur': BilateralFilterAttacker(d=9, sigmaColor=75, sigmaSpace=75),
+                'Iterative_blur': IterativeBlurAttacker(iterations =3),
+                'AnisotropicDiffusion_blur':AnisotropicDiffusionAttacker(num_iter=15, delta_t=0.14, kappa=50),
+                'DirectionalGaussian_blur': DirectionalGaussianBlurAttacker(kernel_size=15, sigma=5, angle=45),
+                'sharpening': SharpeningAttacker(factor = 2.0),
+                'salt_pepper_noise':SaltAndPepperNoiseAttacker(amount = 0.1),
+                'hue_change': HueChangeAttacker(factor = 0.1),
+                'elastic_deformation': ElasticDeformationAttacker(alpha=1000, sigma=50),
+                'RGBtoHSV':RGBtoHSVAttacker(h_shift=0.1, s_scale=1.2, v_scale=1.1),
+                'color_balance': ColorBalanceAttacker( r_scale=1.2, g_scale=1.0, b_scale=0.8),
+                'gamma':GammaAttacker(gamma = 1.5),
+                'HistogramEqualization':HistogramEqualizationAttacker(),
+                'log_transform': LogTransformAttacker(c=1),
+                'color_jitter':ColorJitterAttacker(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+                'color_quantization':ColorQuantizationAttacker(n_colors = 32),
+                'sepia':SepiaAttacker(),
+                'posterization': PosterizationAttacker(levels =4),
+                'bm3d': BM3DAttacker(),
+                }
             multi_name = 'all'
         elif case == 'w/o rot':
             attackers = {
-            'diff_attacker_60': DiffWMAttacker(att_pipe, batch_size=5, noise_step=60, captions={}),
-            'cheng2020-anchor_3': VAEWMAttacker('cheng2020-anchor', quality=3, metric='mse', device=device),
-            'bmshj2018-factorized_3': VAEWMAttacker('bmshj2018-factorized', quality=3, metric='mse', device=device),
-            'jpeg_attacker_50': JPEGAttacker(quality=50),
-            'brightness_0.5': BrightnessAttacker(brightness=0.5),
-            'contrast_0.5': ContrastAttacker(contrast=0.5),
-            'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
-            'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
-            'bm3d': BM3DAttacker(),
-            }#CHANGE
+                'diff_attacker_60': DiffWMAttacker(att_pipe, batch_size=5, noise_step=60, captions={}),
+                'cheng2020-anchor_3': VAEWMAttacker('cheng2020-anchor', quality=3, metric='mse', device=device),
+                'bmshj2018-factorized_3': VAEWMAttacker('bmshj2018-factorized', quality=3, metric='mse', device=device),
+                'jpeg_attacker_50': JPEGAttacker(quality=50),
+                'jpeg_attacker_90': JPEGAttacker(quality=10),
+                'jpeg_attacker_99': JPEGAttacker(quality=1),
+                'rotate_90': RotateAttacker(degree=90),
+                'brightness_0.5': BrightnessAttacker(brightness=0.5),
+                'brightness_1.5': BrightnessAttacker(brightness=1.5),
+                'contrast_0.5': ContrastAttacker(contrast=0.5),
+                'contrast_1.5': ContrastAttacker(contrast=1.5),
+                'vibrancy_1.25': VibrancyAttacker(vibrancy = 1.25),
+                'black_white': BlackAndWhiteAttacker(),
+                'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
+                'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
+                'Motion_blur': MotionBlurAttacker(kernel_size=15, angle=45),
+                'OutofFocus_blur':OutOfFocusBlurAttacker(kernel_size = 15),
+                'Radial_blur': RadialBlurAttacker(strength = 10),
+                'Zoom_blur':ZoomBlurAttacker(strength=20),
+                'Atmospheric_blur': AtmosphericBlurAttacker(strength=0.5),
+                'PSF_blur': PSFBlurAttacker(kernel_size=15, angle=45),
+                'Bilateral_blur': BilateralFilterAttacker(d=9, sigmaColor=75, sigmaSpace=75),
+                'Iterative_blur': IterativeBlurAttacker(iterations =3),
+                'AnisotropicDiffusion_blur':AnisotropicDiffusionAttacker(num_iter=15, delta_t=0.14, kappa=50),
+                'DirectionalGaussian_blur': DirectionalGaussianBlurAttacker(kernel_size=15, sigma=5, angle=45),
+                'sharpening': SharpeningAttacker(factor = 2.0),
+                'salt_pepper_noise':SaltAndPepperNoiseAttacker(amount = 0.1),
+                'hue_change': HueChangeAttacker(factor = 0.1),
+                'elastic_deformation': ElasticDeformationAttacker(alpha=1000, sigma=50),
+                'RGBtoHSV':RGBtoHSVAttacker(h_shift=0.1, s_scale=1.2, v_scale=1.1),
+                'color_balance': ColorBalanceAttacker( r_scale=1.2, g_scale=1.0, b_scale=0.8),
+                'gamma':GammaAttacker(gamma = 1.5),
+                'HistogramEqualization':HistogramEqualizationAttacker(),
+                'log_transform': LogTransformAttacker(c=1),
+                'color_jitter':ColorJitterAttacker(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+                'color_quantization':ColorQuantizationAttacker(n_colors = 32),
+                'sepia':SepiaAttacker(),
+                'posterization': PosterizationAttacker(levels =4),
+                'bm3d': BM3DAttacker(),
+                }
             multi_name = 'all_norot'
             
         
@@ -211,9 +304,11 @@ for imagename in os.listdir(input_folder_path):
                 attackers[attacker_name].attack([att_img_path], [att_img_path], multi=True)
     post_img = f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png"
 
-    attackers = ['diff_attacker_60', 'cheng2020-anchor_3', 'bmshj2018-factorized_3', 'jpeg_attacker_50', 
-                'brightness_0.5', 'contrast_0.5', 'Gaussian_noise', 'Gaussian_blur', 'rotate_90', 'bm3d', 
-                'all', 'all_norot']#CHANGE
+    attackers = ['diff_attacker_60', 'cheng2020-anchor_3', 'bmshj2018-factorized_3', 'jpeg_attacker_50','jpeg_attacker_90','jpeg_attacker_99', 
+                'brightness_0.5','brightness_1.5' ,'contrast_0.5','contrast_1.5','vibrancy_1.25','black_white', 'Gaussian_noise', 'Gaussian_blur','AnisotropicDiffusion_blur',
+                'DirectionalGaussian_blur','sharpening','salt_pepper_noise','hue_change','elastic_deformation','RGBtoHSV','color_balance','gamma','HistogramEqualization',
+                'log_transform','color_jitter','color_quantization','sepia','posterization','rotate_90', 'bm3d','all', 'all_norot']
+#CHANGE
 
     tester_prompt = '' # assume at the detection time, the original prompt is unknown
     text_embeddings = pipe.get_text_embedding(tester_prompt)
@@ -228,6 +323,7 @@ for imagename in os.listdir(input_folder_path):
             
         det_prob = 1 - watermark_prob(os.path.join(wm_path, attacker_name, os.path.basename(post_img)), pipe, wm_pipe, text_embeddings)
         #CHANGE , APPEND IN METRICS HERE
+        metrics[attacker_name].append(det_prob)
     device = torch.device("cuda")
     if args.attack == True:
         def circle_mask(size=64, r=10, x_offset=0, y_offset=0):
