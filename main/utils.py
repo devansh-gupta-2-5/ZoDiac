@@ -50,7 +50,7 @@ def save_img(path, img: torch.Tensor, pipe):
     return
 
 def get_img_tensor(img_path, device):
-    img_tensor = pil_to_tensor(Image.open(img_path).resize(512,512).convert("RGB"))/255
+    img_tensor = pil_to_tensor(Image.open(img_path).resize((512,512)).convert("RGB"))/255
     return img_tensor.unsqueeze(0).to(device)
 
 def create_output_folder(cfgs):
