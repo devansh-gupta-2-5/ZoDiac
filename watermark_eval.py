@@ -48,9 +48,10 @@ input_folder_path = args.input_folder
 wm_path = cfgs['save_img']
 # A dictionary to maintain running average of all the metrics
 metrics = {"ssim": [], "psnr": [], "normal": [], "adv": [] ,'diff_attacker_60':[],'cheng2020-anchor_3':[], 'bmshj2018-factorized_3':[], 'jpeg_attacker_50':[],'jpeg_attacker_90':[],'jpeg_attacker_99':[], 
-             'brightness_0.5':[],'brightness_1.5':[] ,'contrast_0.5':[],'contrast_1.5':[],'vibrancy_1.25':[],'black_white':[], 'Gaussian_noise':[], 'Gaussian_blur':[],'AnisotropicDiffusion_blur':[],
+             'brightness_0.5':[],'brightness_1.5':[] ,'contrast_0.5':[],'contrast_1.5':[],'vibrancy_1.25':[],'black_white':[],'lateral_inversion':[], 'Gaussian_noise':[], 'Gaussian_blur':[],'AnisotropicDiffusion_blur':[],
              'DirectionalGaussian_blur':[],'sharpening':[],'salt_pepper_noise':[],'hue_change':[],'elastic_deformation':[],'RGBtoHSV':[],'color_balance':[],'gamma':[],'HistogramEqualization':[],
-             'log_transform':[],'color_jitter':[],'color_quantization':[],'sepia':[],'posterization':[],'rotate_90':[], 'bm3d':[],'all':[], 'all_norot':[]} #CHANGE
+             'log_transform':[],'color_jitter':[],'color_quantization':[],'sepia':[],'posterization':[],'rotate_30':[],'rotate_60':[],'rotate_90':[],'rotate_120':[],'rotate_150':[],'rotate_180':[],'rotate_210':[],'rotate_240':[],
+             'rotate_270':[],'lateral_rotate':[], 'bm3d':[],'all':[], 'all_norot':[]} #CHANGE
 
 
 tatta = 0
@@ -155,13 +156,23 @@ for imagename in os.listdir(input_folder_path):
     'jpeg_attacker_50': JPEGAttacker(quality=50),
     'jpeg_attacker_90': JPEGAttacker(quality=10),
     'jpeg_attacker_99': JPEGAttacker(quality=1),
+    'rotate_30': RotateAttacker(degree = 30),
+    'rotate_60': RotateAttacker(degree = 60),
     'rotate_90': RotateAttacker(degree=90),
+    'rotate_120': RotateAttacker(degree = 120),
+    'rotate_150': RotateAttacker(degree = 150),
+    'rotate_180': RotateAttacker(degree = 180),
+    'rotate_210': RotateAttacker(degree = 210),
+    'rotate_240': RotateAttacker(degree = 240),
+    'rotate_270': RotateAttacker(degree = 270),
+    'lateral_rotate': LateralRotateAttacker(),
     'brightness_0.5': BrightnessAttacker(brightness=0.5),
     'brightness_1.5': BrightnessAttacker(brightness=1.5),
     'contrast_0.5': ContrastAttacker(contrast=0.5),
     'contrast_1.5': ContrastAttacker(contrast=1.5),
     'vibrancy_1.25': VibrancyAttacker(vibrancy = 1.25),
     'black_white': BlackAndWhiteAttacker(),
+    'lateral_inversion':LateralInversionAttacker(),
     'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
     'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
     'Motion_blur': MotionBlurAttacker(kernel_size=15, angle=45),
@@ -214,13 +225,23 @@ for imagename in os.listdir(input_folder_path):
                 'jpeg_attacker_50': JPEGAttacker(quality=50),
                 'jpeg_attacker_90': JPEGAttacker(quality=10),
                 'jpeg_attacker_99': JPEGAttacker(quality=1),
+                'rotate_30': RotateAttacker(degree = 30),
+                'rotate_60': RotateAttacker(degree = 60),
                 'rotate_90': RotateAttacker(degree=90),
+                'rotate_120': RotateAttacker(degree = 120),
+                'rotate_150': RotateAttacker(degree = 150),
+                'rotate_180': RotateAttacker(degree = 180),
+                'rotate_210': RotateAttacker(degree = 210),
+                'rotate_240': RotateAttacker(degree = 240),
+                'rotate_270': RotateAttacker(degree = 270),
+                'lateral_rotate': LateralRotateAttacker(),
                 'brightness_0.5': BrightnessAttacker(brightness=0.5),
                 'brightness_1.5': BrightnessAttacker(brightness=1.5),
                 'contrast_0.5': ContrastAttacker(contrast=0.5),
                 'contrast_1.5': ContrastAttacker(contrast=1.5),
                 'vibrancy_1.25': VibrancyAttacker(vibrancy = 1.25),
                 'black_white': BlackAndWhiteAttacker(),
+                'lateral_inversion':LateralInversionAttacker(),
                 'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
                 'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
                 'Motion_blur': MotionBlurAttacker(kernel_size=15, angle=45),
@@ -257,13 +278,22 @@ for imagename in os.listdir(input_folder_path):
                 'jpeg_attacker_50': JPEGAttacker(quality=50),
                 'jpeg_attacker_90': JPEGAttacker(quality=10),
                 'jpeg_attacker_99': JPEGAttacker(quality=1),
-                'rotate_90': RotateAttacker(degree=90),
+                # 'rotate_30': RotateAttacker(degree = 30),
+                # 'rotate_60': RotateAttacker(degree = 60),
+                # 'rotate_90': RotateAttacker(degree=90),
+                # 'rotate_120': RotateAttacker(degree = 120),
+                # 'rotate_150': RotateAttacker(degree = 150),
+                # 'rotate_180': RotateAttacker(degree = 180),
+                # 'rotate_210': RotateAttacker(degree = 210),
+                # 'rotate_240': RotateAttacker(degree = 240),
+                # 'rotate_270': RotateAttacker(degree = 270),
                 'brightness_0.5': BrightnessAttacker(brightness=0.5),
                 'brightness_1.5': BrightnessAttacker(brightness=1.5),
                 'contrast_0.5': ContrastAttacker(contrast=0.5),
                 'contrast_1.5': ContrastAttacker(contrast=1.5),
                 'vibrancy_1.25': VibrancyAttacker(vibrancy = 1.25),
                 'black_white': BlackAndWhiteAttacker(),
+                'lateral_inversion':LateralInversionAttacker(),
                 'Gaussian_noise': GaussianNoiseAttacker(std=0.05),
                 'Gaussian_blur': GaussianBlurAttacker(kernel_size=5, sigma=1),
                 'Motion_blur': MotionBlurAttacker(kernel_size=15, angle=45),
@@ -305,9 +335,10 @@ for imagename in os.listdir(input_folder_path):
     post_img = os.path.join(wm_path,f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png")
 
     attackers = ['diff_attacker_60', 'cheng2020-anchor_3', 'bmshj2018-factorized_3', 'jpeg_attacker_50','jpeg_attacker_90','jpeg_attacker_99', 
-                'brightness_0.5','brightness_1.5' ,'contrast_0.5','contrast_1.5','vibrancy_1.25','black_white', 'Gaussian_noise', 'Gaussian_blur','AnisotropicDiffusion_blur',
-                'DirectionalGaussian_blur','sharpening','salt_pepper_noise','hue_change','elastic_deformation','RGBtoHSV','color_balance','gamma','HistogramEqualization',
-                'log_transform','color_jitter','color_quantization','sepia','posterization','rotate_90', 'bm3d','all', 'all_norot']
+                'brightness_0.5','brightness_1.5' ,'contrast_0.5','contrast_1.5','vibrancy_1.25','black_white','lateral_inversion', 'Gaussian_noise', 
+                'Gaussian_blur','AnisotropicDiffusion_blur','DirectionalGaussian_blur','sharpening','salt_pepper_noise','hue_change','elastic_deformation',
+                'RGBtoHSV','color_balance','gamma','HistogramEqualization','log_transform','color_jitter','color_quantization','sepia','posterization',
+                'rotate_30','rotate_60','rotate_90','rotate_120','rotate_150','rotate_180','rotate_210','rotate_240','rotate_270','lateral_rotate', 'bm3d','all', 'all_norot']
 #CHANGE
 
     tester_prompt = '' # assume at the detection time, the original prompt is unknown
