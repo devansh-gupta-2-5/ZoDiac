@@ -10,4 +10,3 @@ python watermark_eval.py --input_folder ./adversarial_dataset --adv_only True
 python watermark_eval.py --input_folder ./adversarial_dataset --config ./example/config/config_loss_changed.yaml
 
 #command for ssim variation with few metrics
-#python watermark_ssim_eval.py --input_folder ./ssim_variation  --attack False
