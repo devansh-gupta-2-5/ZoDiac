@@ -389,7 +389,7 @@ for imagename in os.listdir(input_folder_path):
             return perturbed_image.detach()
 
         # Load an example image
-        image = load_image(f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png")  # Provide your own image
+        image = load_image(os.path.join(wm_path,f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png"))
 
         # Initialize model
         model = FourierModel(watermarking_mask=watermarking_mask)
