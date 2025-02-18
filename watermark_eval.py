@@ -302,7 +302,7 @@ for imagename in os.listdir(input_folder_path):
                 attackers[attacker_name].attack([post_img], [att_img_path], multi=True)
             else:
                 attackers[attacker_name].attack([att_img_path], [att_img_path], multi=True)
-    post_img = f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png"
+    post_img = os.path.join(wm_path,f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png")
 
     attackers = ['diff_attacker_60', 'cheng2020-anchor_3', 'bmshj2018-factorized_3', 'jpeg_attacker_50','jpeg_attacker_90','jpeg_attacker_99', 
                 'brightness_0.5','brightness_1.5' ,'contrast_0.5','contrast_1.5','vibrancy_1.25','black_white', 'Gaussian_noise', 'Gaussian_blur','AnisotropicDiffusion_blur',
