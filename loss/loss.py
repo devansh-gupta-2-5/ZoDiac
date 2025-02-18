@@ -28,5 +28,5 @@ class LossProvider(nn.Module):
         lossP = self.loss_per(pred_img_tensor, gt_img_tensor)*self.loss_weights[1]
         lossS = (1-self.loss_ssim(pred_img_tensor, gt_img_tensor))*self.loss_weights[2]
         loss = lossW + lossI + lossP + lossS
-        logging.info(f'Watermark {lossW.item():.4f}, Image {lossI.item():.4f}, Perp {lossP.item():.4f}, SSIM {lossS.item():.4f} Total Loss {loss.item():.4f}')
+        #logging.info(f'Watermark {lossW.item():.4f}, Image {lossI.item():.4f}, Perp {lossP.item():.4f}, SSIM {lossS.item():.4f} Total Loss {loss.item():.4f}')
         return loss
