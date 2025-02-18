@@ -203,11 +203,11 @@ for imagename in os.listdir(input_folder_path):
             det_prob = 1 - watermark_prob(os.path.join(wm_path, attacker_name, os.path.basename(post_img)), pipe, wm_pipe, text_embeddings)
             metrics[ssim_threshold][attacker_name].append(det_prob)
 
-        if args.attack:
-            # Adversarial attack code here (omitted for brevity)
-            # ...
-            det_prob = 1 - watermark_prob(os.path.join(wm_path, 'perturbed_images', f"{imagename}_perturbed.png"), pipe, wm_pipe, text_embeddings)
-            metrics[ssim_threshold]["adv"].append(det_prob)
+        # if args.attack:
+        #     # Adversarial attack code here (omitted for brevity)
+        #     # ...
+        #     det_prob = 1 - watermark_prob(os.path.join(wm_path, 'perturbed_images', f"{imagename}_perturbed.png"), pipe, wm_pipe, text_embeddings)
+        #     metrics[ssim_threshold]["adv"].append(det_prob)
 
     tatta += 1  
     logging.info(f'Image {imagename} done')
