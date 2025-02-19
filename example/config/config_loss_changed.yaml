@@ -15,8 +15,8 @@ w_seed: 10
 
 # for updating
 start_latents: 'init_w' # 'init', 'init_w', 'rand', 'rand_w'
-iters: 50
-save_iters: [50]
+iters: 100
+save_iters: [50,100]
 loss_weights: [10.0, 0.1, 1.0, 0.02] # L2 loss, watson-vgg loss, SSIM loss, watermark L1 loss
 
 # for postprocessing and detection
