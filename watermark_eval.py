@@ -433,84 +433,84 @@ for imagename in os.listdir(input_folder_path):
         #CHANGE , APPEND IN METRICS HERE
         metrics[attacker_name].append(det_prob)
     device = torch.device("cuda")
-    # if args.attack == True:
-    #     def circle_mask(size=64, r=10, x_offset=0, y_offset=0):
-    #         # reference: https://stackoverflow.com/questions/69687798/generating-a-soft-circluar-mask-using-numpy-python-3
-    #             x0 = y0 = size // 2
-    #             x0 += x_offset
-    #             y0 += y_offset
-    #             y, x = np.ogrid[:size, :size]
-    #             y = y[::-1]
-    #             return ((x - x0)**2 + (y-y0)**2)<= r**2
-    #     watermarking_mask = torch.zeros(torch.Size([1, 4, 64, 64]), dtype=torch.bool).to(device)
-    #     watermarking_mask[:,3] = torch.tensor(circle_mask(torch.Size([1, 4, 64, 64])[-1])).to(device)
-    #     watermarking_mask.shape
-    #     watermarking_mask = watermarking_mask.to(device="cpu")
+    if args.attack == True:
+        def circle_mask(size=64, r=10, x_offset=0, y_offset=0):
+            # reference: https://stackoverflow.com/questions/69687798/generating-a-soft-circluar-mask-using-numpy-python-3
+                x0 = y0 = size // 2
+                x0 += x_offset
+                y0 += y_offset
+                y, x = np.ogrid[:size, :size]
+                y = y[::-1]
+                return ((x - x0)**2 + (y-y0)**2)<= r**2
+        watermarking_mask = torch.zeros(torch.Size([1, 4, 64, 64]), dtype=torch.bool).to(device)
+        watermarking_mask[:,3] = torch.tensor(circle_mask(torch.Size([1, 4, 64, 64])[-1])).to(device)
+        watermarking_mask.shape
+        watermarking_mask = watermarking_mask.to(device="cpu")
 
-    #     # Load Stable Diffusion 2.1 VAE encoder
-    #     vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse")
-    #     vae.eval()
+        # Load Stable Diffusion 2.1 VAE encoder
+        vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse")
+        vae.eval()
 
-    #     # Define a simple model that computes the Fourier Transform of an image
-    #     class FourierModel(nn.Module):
-    #         def __init__(self, watermarking_mask):
-    #             super(FourierModel, self).__init__()
-    #             self.vae = vae
-    #             self.watermarking_mask = watermarking_mask
-    #         def forward(self, x):
-    #             latents = self.vae.encode(x).latent_dist.sample()
-    #             fft = latents
-    #             fft = torch.fft.fft2(latents, dim=(-2, -1))
-    #             reversed_latents_w_fft = torch.fft.fftshift(fft)[self.watermarking_mask].flatten()
-    #             reversed_latents_w_fft = torch.concatenate([reversed_latents_w_fft.real, reversed_latents_w_fft.imag])
-    #             return reversed_latents_w_fft
+        # Define a simple model that computes the Fourier Transform of an image
+        class FourierModel(nn.Module):
+            def __init__(self, watermarking_mask):
+                super(FourierModel, self).__init__()
+                self.vae = vae
+                self.watermarking_mask = watermarking_mask
+            def forward(self, x):
+                latents = self.vae.encode(x).latent_dist.sample()
+                fft = latents
+                fft = torch.fft.fft2(latents, dim=(-2, -1))
+                reversed_latents_w_fft = torch.fft.fftshift(fft)[self.watermarking_mask].flatten()
+                reversed_latents_w_fft = torch.concatenate([reversed_latents_w_fft.real, reversed_latents_w_fft.imag])
+                return reversed_latents_w_fft
             
-    #     def load_image(image_path):
-    #         transform = transforms.Compose([
-    #             transforms.Resize((512, 512)),  # Resize to match VAE input size
-    #             transforms.ToTensor()
-    #         ])
-    #         image = Image.open(image_path).convert("RGB")  # Ensure RGB format
-    #         return transform(image).unsqueeze(0).requires_grad_(True)  # Add batch dimension
+        def load_image(image_path):
+            transform = transforms.Compose([
+                transforms.Resize((512, 512)),  # Resize to match VAE input size
+                transforms.ToTensor()
+            ])
+            image = Image.open(image_path).convert("RGB")  # Ensure RGB format
+            return transform(image).unsqueeze(0).requires_grad_(True)  # Add batch dimension
         
-    #     image = load_image(os.path.join(wm_path,f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png"))
+        image = load_image(os.path.join(wm_path,f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png"))
             
-    #         # Initialize model
-    #     model = FourierModel(watermarking_mask=watermarking_mask)
-    #     target = model(image)
+            # Initialize model
+        model = FourierModel(watermarking_mask=watermarking_mask)
+        target = model(image)
 
-    #     # PGD attack targeting Fourier space disruptions
-    #     def pgd_attack(model, image, epsilon=0.015, alpha=0.015, iterations=50):
-    #         perturbed_image = image.clone().detach().requires_grad_(True)
+        # PGD attack targeting Fourier space disruptions
+        def pgd_attack(model, image, epsilon=0.015, alpha=0.015, iterations=50):
+            perturbed_image = image.clone().detach().requires_grad_(True)
             
-    #         for _ in range(iterations):
-    #             output = model(perturbed_image)
-    #             loss = torch.norm(target - output , p=2)  # Maximizing Fourier disruption
-    #             print(loss)
-    #             loss.backward(retain_graph=True)
+            for _ in range(iterations):
+                output = model(perturbed_image)
+                loss = torch.norm(target - output , p=2)  # Maximizing Fourier disruption
+                print(loss)
+                loss.backward(retain_graph=True)
                 
-    #             with torch.no_grad():
-    #                 perturbed_image.data += alpha * perturbed_image.grad.sign()
-    #                 perturbed_image.data = torch.clamp(perturbed_image, image - epsilon, image + epsilon)
-    #                 perturbed_image.data = torch.clamp(perturbed_image, 0, 1)  
+                with torch.no_grad():
+                    perturbed_image.data += alpha * perturbed_image.grad.sign()
+                    perturbed_image.data = torch.clamp(perturbed_image, image - epsilon, image + epsilon)
+                    perturbed_image.data = torch.clamp(perturbed_image, 0, 1)  
             
-    #         return perturbed_image.detach()
+            return perturbed_image.detach()
 
-    #     # Load an example image
-    #     image = load_image(os.path.join(wm_path,f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png"))
+        # Load an example image
+        image = load_image(os.path.join(wm_path,f"{os.path.basename(wm_img_path).split('.')[0]}_SSIM{ssim_threshold}.png"))
 
-    #     # Initialize model
-    #     model = FourierModel(watermarking_mask=watermarking_mask)
+        # Initialize model
+        model = FourierModel(watermarking_mask=watermarking_mask)
 
-    #     # Perform adversarial attack
-    #     perturbed_image = pgd_attack(model, image, epsilon=args.budget , alpha=args.alpha , iterations=args.iters)
+        # Perform adversarial attack
+        perturbed_image = pgd_attack(model, image, epsilon=args.budget , alpha=args.alpha , iterations=args.iters)
 
-    #     save_transform = transforms.ToPILImage()
-    #     perturbed_image_pil = save_transform(perturbed_image.squeeze(0))
-    #     os.makedirs(os.path.join(wm_path, 'perturbed_images'), exist_ok=True)
-    #     perturbed_image_pil.save(os.path.join(wm_path, 'perturbed_images', f"{imagename}_perturbed.png"))
-    #     det_prob = 1 - watermark_prob(os.path.join(wm_path, 'perturbed_images', f"{imagename}_perturbed.png"), pipe, wm_pipe, text_embeddings)
-    #     metrics["adv"].append(det_prob)
+        save_transform = transforms.ToPILImage()
+        perturbed_image_pil = save_transform(perturbed_image.squeeze(0))
+        os.makedirs(os.path.join(wm_path, 'perturbed_images'), exist_ok=True)
+        perturbed_image_pil.save(os.path.join(wm_path, 'perturbed_images', f"{imagename}_perturbed.png"))
+        det_prob = 1 - watermark_prob(os.path.join(wm_path, 'perturbed_images', f"{imagename}_perturbed.png"), pipe, wm_pipe, text_embeddings)
+        metrics["adv"].append(det_prob)
     tatta += 1  
     logging.info(f'Image {imagename} done')
     logging.info(f'Image number {tatta+1}')
